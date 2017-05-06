@@ -26,22 +26,15 @@ void Controller::readRedisValues() {
 	redis_client_.getEigenMatrixDerivedString(JOINT_VELOCITIES_KEY, robot->_dq);
 
 	// Get current simulation timestamp from Redis
-	redis_client_.getCommandIs(TIMESTAMP_KEY, redis_buf_);
-	t_curr_ = stod(redis_buf_);
+	t_curr_ = redis_client_.getDouble(TIMESTAMP_KEY);
 
 	// Read in KP and KV from Redis (can be changed on the fly in Redis)
-	redis_client_.getCommandIs(KP_POSITION_KEY, redis_buf_);
-	kp_pos_ = stoi(redis_buf_);
-	redis_client_.getCommandIs(KV_POSITION_KEY, redis_buf_);
-	kv_pos_ = stoi(redis_buf_);
-	redis_client_.getCommandIs(KP_ORIENTATION_KEY, redis_buf_);
-	kp_ori_ = stoi(redis_buf_);
-	redis_client_.getCommandIs(KV_ORIENTATION_KEY, redis_buf_);
-	kv_ori_ = stoi(redis_buf_);
-	redis_client_.getCommandIs(KP_JOINT_KEY, redis_buf_);
-	kp_joint_ = stoi(redis_buf_);
-	redis_client_.getCommandIs(KV_JOINT_KEY, redis_buf_);
-	kv_joint_ = stoi(redis_buf_);
+	kp_pos_ = redis_client_.getInt(KP_POSITION_KEY);
+  kv_pos_ = redis_client_.getInt(KV_POSITION_KEY);
+  kp_ori_ = redis_client_.getInt(KP_ORIENTATION_KEY);
+  kv_ori_ = redis_client_.getInt(KV_ORIENTATION_KEY);
+	kp_joint_ = redis_client_.getInt(KP_JOINT_KEY);
+  kv_joint_ = redis_client_.getInt(KV_JOINT_KEY);
 }
 
 /**
@@ -68,11 +61,11 @@ void Controller::updateModel() {
 	robot->updateModel();
 
 	// Forward kinematics
-	robot->position(x_, "link6", Eigen::Vector3d::Zero());
-	robot->linearVelocity(dx_, "link6", Eigen::Vector3d::Zero());
+	robot->position(x_, kEELinkName, Eigen::Vector3d::Zero());
+	robot->linearVelocity(dx_, kEELinkName, Eigen::Vector3d::Zero());
 
 	// Jacobians
-	robot->Jv(Jv_, "link6", Eigen::Vector3d::Zero());
+	robot->Jv(Jv_, kEELinkName, Eigen::Vector3d::Zero());
 	robot->nullspaceMatrix(N_, Jv_);
 
 	// Dynamics
@@ -145,30 +138,12 @@ void Controller::initialize() {
 	redis_client_.serverIs(kRedisServerInfo);
 
 	// Set gains in Redis if not initialized
-	if (!redis_client_.getCommandIs(KP_POSITION_KEY)) {
-		redis_buf_ = to_string(kp_pos_);
-		redis_client_.setCommandIs(KP_POSITION_KEY, redis_buf_);
-	}
-	if (!redis_client_.getCommandIs(KV_POSITION_KEY)) {
-		redis_buf_ = to_string(kv_pos_);
-		redis_client_.setCommandIs(KV_POSITION_KEY, redis_buf_);
-	}
-	if (!redis_client_.getCommandIs(KP_ORIENTATION_KEY)) {
-		redis_buf_ = to_string(kp_ori_);
-		redis_client_.setCommandIs(KP_ORIENTATION_KEY, redis_buf_);
-	}
-	if (!redis_client_.getCommandIs(KV_ORIENTATION_KEY)) {
-		redis_buf_ = to_string(kv_ori_);
-		redis_client_.setCommandIs(KV_ORIENTATION_KEY, redis_buf_);
-	}
-	if (!redis_client_.getCommandIs(KP_JOINT_KEY)) {
-		redis_buf_ = to_string(kp_joint_);
-		redis_client_.setCommandIs(KP_JOINT_KEY, redis_buf_);
-	}
-	if (!redis_client_.getCommandIs(KV_JOINT_KEY)) {
-		redis_buf_ = to_string(kv_joint_);
-		redis_client_.setCommandIs(KV_JOINT_KEY, redis_buf_);
-	}
+	redis_client_.setValueIfUninitialized(KP_POSITION_KEY, kp_pos_);
+	redis_client_.setValueIfUninitialized(KV_POSITION_KEY, kv_pos_);
+	redis_client_.setValueIfUninitialized(KP_ORIENTATION_KEY, kp_ori_);
+	redis_client_.setValueIfUninitialized(KV_ORIENTATION_KEY, kv_ori_);
+	redis_client_.setValueIfUninitialized(KP_JOINT_KEY, kp_joint_);
+	redis_client_.setValueIfUninitialized(KV_JOINT_KEY, kv_joint_);
 }
 
 /**

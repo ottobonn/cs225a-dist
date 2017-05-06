@@ -87,11 +87,44 @@ public:
 		return success;
 	}
 
+  int getInt(const string &cmd_mssg) {
+    string data;
+    getCommandIs(cmd_mssg, data);
+    return stoi(data);
+  }
+
+  float getFloat(const string &cmd_mssg) {
+    string data;
+    getCommandIs(cmd_mssg, data);
+    return stof(data);
+  }
+
+  double getDouble(const string &cmd_mssg) {
+    string data;
+    getCommandIs(cmd_mssg, data);
+    return stod(data);
+  }
+
 	void setCommandIs(const string &cmd_mssg, const string &data_mssg) {
 		reply_ = (redisReply *)redisCommand(context_, "SET %s %s", cmd_mssg.c_str(), data_mssg.c_str());
 		// NOTE: set commands dont check for write errors.
-      	freeReplyObject((void*)reply_);
+    freeReplyObject((void*)reply_);
 	}
+
+  void setValue(const string &key, const float value) {
+    setCommandIs(key, std::to_string(value));
+  }
+
+  void setValueIfUninitialized(const string &key, const float value) {
+    if (!getFloat(key)) {
+      setCommandIs(key, std::to_string(value));
+    }
+  }
+
+  void flushall() {
+    reply_ = (redisReply *)redisCommand(context_, "FLUSHALL");
+    freeReplyObject(reply_);
+  }
 
 	// write raw eigen vector
 	template<typename Derived>
@@ -121,7 +154,7 @@ public:
 		if(success && !hEigenFromStringArrayJSON(ret_mat, reply_->str)) {
 			throw(runtime_error("Could not deserialize json to eigen data!"));
 		}
-		freeReplyObject((void*)reply_);	
+		freeReplyObject((void*)reply_);
 	}
 
 	// read raw eigen vector, but from a custom string rather than from json
@@ -132,7 +165,7 @@ public:
 		if(success && !hEigenFromStringArrayCustom(ret_mat, reply_->str)) {
 			throw(runtime_error("Could not deserialize custom string to eigen data!"));
 		}
-		freeReplyObject((void*)reply_);	
+		freeReplyObject((void*)reply_);
 	}
 
 public: // server connectivity tools
@@ -299,7 +332,7 @@ bool RedisClient::hEigenFromStringArrayCustom(Eigen::MatrixBase<Derived>& x, con
 	std::replace(copy_str.begin(), copy_str.end(), ';', ' ');
 
     std::stringstream ss(copy_str);
-    
+
     if(nrows < 1) return false; //Must have elements.
 
 	bool is_matrix = (nrows > 1);

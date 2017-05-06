@@ -87,6 +87,8 @@ protected:
 	const int kControlFreq = 1000;         // 1 kHz control loop
 	const int kInitializationPause = 1e6;  // 1ms pause before starting control loop
 
+  const string kEELinkName = "EE"; // URDF end-effector link name
+
 	const HiredisServerInfo kRedisServerInfo = {
 		"127.0.0.1",  // hostname
 		6379,         // port

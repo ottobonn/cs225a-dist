@@ -134,7 +134,7 @@
             </geometry>
         </collision> -->
     </link>
-    <link name="link6">
+    <link name="EE">
         <inertial>
             <origin xyz="0 0 0.03" rpy="0 -0 0" />
             <mass value="1" />
@@ -197,7 +197,7 @@
     </joint>
     <joint name="j6" type="revolute">
         <parent link="link5" />
-        <child link="link6" />
+        <child link="EE" />
         <origin xyz="0.000000 0.000000 0.081000" rpy="-0.000000 0.000000 -0.000000" />
         <axis xyz="0 0 1" />
         <limit lower="-3.0543" upper="3.0543" effort="40" velocity="3.1416" />
