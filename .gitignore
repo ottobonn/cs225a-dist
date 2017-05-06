@@ -45,3 +45,8 @@ external
 sai2-common
 sai2-simulation
 resources
+
+# CMake outputs
+CMakeFiles/
+cmake_install.cmake
+Makefile

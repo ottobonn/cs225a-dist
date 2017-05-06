@@ -1,4 +1,4 @@
-#include "DemoProject.h"
+#include "controller.h"
 
 #include <iostream>
 #include <fstream>
@@ -16,11 +16,11 @@ static inline bool isnan(const Eigen::MatrixBase<Derived>& x) {
 using namespace std;
 
 /**
- * DemoProject::readRedisValues()
+ * Controller::readRedisValues()
  * ------------------------------
  * Retrieve all read keys from Redis.
  */
-void DemoProject::readRedisValues() {
+void Controller::readRedisValues() {
 	// read from Redis current sensor values
 	redis_client_.getEigenMatrixDerivedString(JOINT_ANGLES_KEY, robot->_q);
 	redis_client_.getEigenMatrixDerivedString(JOINT_VELOCITIES_KEY, robot->_dq);
@@ -45,11 +45,11 @@ void DemoProject::readRedisValues() {
 }
 
 /**
- * DemoProject::writeRedisValues()
+ * Controller::writeRedisValues()
  * -------------------------------
  * Send all write keys to Redis.
  */
-void DemoProject::writeRedisValues() {
+void Controller::writeRedisValues() {
 	// Send end effector position and desired position
 	redis_client_.setEigenMatrixDerivedString(EE_POSITION_KEY, x_);
 	redis_client_.setEigenMatrixDerivedString(EE_POSITION_DESIRED_KEY, x_des_);
@@ -59,11 +59,11 @@ void DemoProject::writeRedisValues() {
 }
 
 /**
- * DemoProject::updateModel()
+ * Controller::updateModel()
  * --------------------------
  * Update the robot model and all the relevant member variables.
  */
-void DemoProject::updateModel() {
+void Controller::updateModel() {
 	// Update the model
 	robot->updateModel();
 
@@ -81,11 +81,11 @@ void DemoProject::updateModel() {
 }
 
 /**
- * DemoProject::computeJointSpaceControlTorques()
+ * Controller::computeJointSpaceControlTorques()
  * ----------------------------------------------
  * Controller to initialize robot to desired joint position.
  */
-DemoProject::ControllerStatus DemoProject::computeJointSpaceControlTorques() {
+Controller::ControllerStatus Controller::computeJointSpaceControlTorques() {
 	// Finish if the robot has converged to q_initial
 	Eigen::VectorXd q_err = robot->_q - q_des_;
 	Eigen::VectorXd dq_err = robot->_dq - dq_des_;
@@ -100,11 +100,11 @@ DemoProject::ControllerStatus DemoProject::computeJointSpaceControlTorques() {
 }
 
 /**
- * DemoProject::computeOperationalSpaceControlTorques()
+ * Controller::computeOperationalSpaceControlTorques()
  * ----------------------------------------------------
  * Controller to move end effector to desired position.
  */
-DemoProject::ControllerStatus DemoProject::computeOperationalSpaceControlTorques() {
+Controller::ControllerStatus Controller::computeOperationalSpaceControlTorques() {
 	// PD position control with velocity saturation
 	Eigen::Vector3d x_err = x_ - x_des_;
 	// Eigen::Vector3d dx_err = dx_ - dx_des_;
@@ -129,11 +129,11 @@ DemoProject::ControllerStatus DemoProject::computeOperationalSpaceControlTorques
 }
 
 /**
- * public DemoProject::initialize()
+ * public Controller::initialize()
  * --------------------------------
  * Initialize timer and Redis client
  */
-void DemoProject::initialize() {
+void Controller::initialize() {
 	// Create a loop timer
 	timer_.setLoopFrequency(kControlFreq);   // 1 KHz
 	// timer.setThreadHighPriority();  // make timing more accurate. requires running executable as sudo.
@@ -172,11 +172,11 @@ void DemoProject::initialize() {
 }
 
 /**
- * public DemoProject::runLoop()
+ * public Controller::runLoop()
  * -----------------------------
- * DemoProject state machine
+ * Controller state machine
  */
-void DemoProject::runLoop() {
+void Controller::runLoop() {
 	while (g_runloop) {
 		// Wait for next scheduled loop (controller must run at precise rate)
 		timer_.waitForNextLoop();
@@ -198,7 +198,7 @@ void DemoProject::runLoop() {
 			case JOINT_SPACE_INITIALIZATION:
 				if (computeJointSpaceControlTorques() == FINISHED) {
 					cout << "Joint position initialized. Switching to operational space controller." << endl;
-					controller_state_ = DemoProject::OP_SPACE_POSITION_CONTROL;
+					controller_state_ = Controller::OP_SPACE_POSITION_CONTROL;
 				};
 				break;
 
@@ -252,12 +252,10 @@ int main(int argc, char** argv) {
 
 	// Start controller app
 	cout << "Initializing app with " << robot_name << endl;
-	DemoProject app(move(robot), robot_name);
+	Controller app(move(robot), robot_name);
 	app.initialize();
 	cout << "App initialized. Waiting for Redis synchronization." << endl;
 	app.runLoop();
 
 	return 0;
 }
-
-

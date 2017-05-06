@@ -1,5 +1,5 @@
-#ifndef DEMO_PROJECT_H
-#define DEMO_PROJECT_H
+#ifndef CONTROLLER_H
+#define CONTROLLER_H
 
 // cs225a includes
 #include "redis/RedisClient.h"
@@ -14,11 +14,11 @@
 #include <string>
 #include <thread>
 
-class DemoProject {
+class Controller {
 
 public:
 
-	DemoProject(std::shared_ptr<Model::ModelInterface> robot,
+	Controller(std::shared_ptr<Model::ModelInterface> robot,
 		        const std::string &robot_name) :
 		robot(robot),
 		dof(robot->dof()),
@@ -156,4 +156,4 @@ protected:
 	double kv_joint_ = 10;
 };
 
-#endif //DEMO_PROJECT_H
+#endif //CONTROLLER_H

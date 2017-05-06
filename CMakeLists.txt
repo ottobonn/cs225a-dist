@@ -39,7 +39,7 @@ find_package(glfw3 QUIET)
 find_library(GLFW_LIBRARY glfw)
 
 # - jsoncpp
-if (CMAKE_SYSTEM_NAME MATCHES Darwin) 
+if (CMAKE_SYSTEM_NAME MATCHES Darwin)
 	find_library(JSONCPP_LIBRARY jsoncpp)
 elseif (CMAKE_SYSTEM_NAME MATCHES Linux)
 	find_package(PkgConfig REQUIRED)
@@ -71,8 +71,4 @@ set (CS225A_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin)
 
 add_subdirectory(src/visualization)
 add_subdirectory(src/simulation)
-add_subdirectory(src/hw0)
-add_subdirectory(src/hw1)
-add_subdirectory(src/hw2)
-add_subdirectory(src/hw3)
-add_subdirectory(src/demo_project)
+add_subdirectory(src/controller)

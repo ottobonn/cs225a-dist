@@ -2,9 +2,9 @@
 
 <world name="demo_world" gravity="0.0 0.0 -9.8">
 
-	<robot name="kuka_iiwa">
+	<robot name="kuka">
 		<!-- model node is required -->
-		<model dir="resources/demo_project" path="kuka_iiwa.urdf" name="kuka_iiwa" />
+		<model dir="resources/controller" path="kuka_iiwa.urdf" name="kuka_iiwa" />
 		<!-- origin node is optional -->
 		<origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
 	</robot>
