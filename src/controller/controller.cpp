@@ -118,7 +118,12 @@ Controller::ControllerStatus Controller::computeOperationalSpaceControlTorques()
 	Eigen::VectorXd F_posture = robot->_M * ddq;
 	command_torques_ = Jv_.transpose() * F_x + N_.transpose() * F_posture + g_;
 
-	return RUNNING;
+  if (x_err.norm() < kToleranceTrajectoryX
+      && dx_err.norm() < kToleranceTrajectoryDx) {
+    return FINISHED;
+  } else {
+    return RUNNING;
+  }
 }
 
 /**
@@ -144,6 +149,24 @@ void Controller::initialize() {
 	redis_client_.setValueIfUninitialized(KV_ORIENTATION_KEY, kv_ori_);
 	redis_client_.setValueIfUninitialized(KP_JOINT_KEY, kp_joint_);
 	redis_client_.setValueIfUninitialized(KV_JOINT_KEY, kv_joint_);
+}
+
+/**
+ *
+ *
+ *
+ */
+Eigen::Vector3d Controller::ImagePointToOperationalPoint(Eigen::Vector2d image_point) {
+  // TODO incorporate variable image plane
+  // FIXME For now, just add z=0 to the 2D point and shift
+  Eigen::Vector3d op_point;
+  Eigen::Vector2d image_bounds_min(0.2, 0.2), image_bounds_max(0.6, 0.6);
+  float x_size = image_bounds_max(0) - image_bounds_min(0);
+  float y_size = image_bounds_max(1) - image_bounds_min(1);
+  float x = (image_point(0) - 0.5) * x_size + image_bounds_min(0);
+  float y = image_point(1) * y_size + image_bounds_min(1);
+  op_point << x, y, 0.2;
+  return op_point;
 }
 
 /**
@@ -174,12 +197,27 @@ void Controller::runLoop() {
 				if (computeJointSpaceControlTorques() == FINISHED) {
 					cout << "Joint position initialized. Switching to operational space controller." << endl;
 					controller_state_ = Controller::OP_SPACE_POSITION_CONTROL;
-				};
+          x_des_ = ImagePointToOperationalPoint(*currentToolpathPoint_);
+				}
 				break;
 
 			// Control end effector to desired position
 			case OP_SPACE_POSITION_CONTROL:
-				computeOperationalSpaceControlTorques();
+				if (computeOperationalSpaceControlTorques() == FINISHED) {
+          cout << "Reached trajectory point." << endl;
+          // Get next trajectory point
+          currentToolpathPoint_++;
+          if (currentToolpathPoint_ == currentToolpath_->points.end()) {
+            currentToolpath_++;
+            if (currentToolpath_ == trajectory_.sequence.end()) {
+              cout << "Trajectory complete" << endl;
+              break; // TODO gracefully end
+            }
+            // TODO switch tools here
+            currentToolpathPoint_ = currentToolpath_->points.begin();
+          }
+          x_des_ = ImagePointToOperationalPoint(*currentToolpathPoint_);
+        }
 				break;
 
 			// Invalid state. Zero torques and exit program.
@@ -208,8 +246,8 @@ void Controller::runLoop() {
 int main(int argc, char** argv) {
 
 	// Parse command line
-	if (argc != 4) {
-		cout << "Usage: demo_app <path-to-world.urdf> <path-to-robot.urdf> <robot-name>" << endl;
+	if (argc != 5) {
+		cout << "Usage: demo_app <path-to-world.urdf> <path-to-robot.urdf> <robot-name> <trajectory_file_name>" << endl;
 		exit(0);
 	}
 	// argument 0: executable name
@@ -219,6 +257,8 @@ int main(int argc, char** argv) {
 	string robot_file(argv[2]);
 	// argument 3: <robot-name>
 	string robot_name(argv[3]);
+  // argument 4: <trajectory file name>
+  string trajectory_file_name(argv[4]);
 
 	// Load robot
 	cout << "Loading robot: " << robot_file << endl;
@@ -227,7 +267,7 @@ int main(int argc, char** argv) {
 
 	// Start controller app
 	cout << "Initializing app with " << robot_name << endl;
-	Controller app(move(robot), robot_name);
+	Controller app(move(robot), robot_name, trajectory_file_name);
 	app.initialize();
 	cout << "App initialized. Waiting for Redis synchronization." << endl;
 	app.runLoop();

@@ -1,6 +1,8 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
+#include "trajectory.h"
+
 // cs225a includes
 #include "redis/RedisClient.h"
 #include "timer/LoopTimer.h"
@@ -14,12 +16,15 @@
 #include <string>
 #include <thread>
 
+#include <iostream>
+
 class Controller {
 
 public:
 
 	Controller(std::shared_ptr<Model::ModelInterface> robot,
-		        const std::string &robot_name) :
+		        const std::string &robot_name,
+            const std::string &trajectory_file_name) :
 		robot(robot),
 		dof(robot->dof()),
 		JOINT_TORQUES_COMMANDED_KEY(kRedisKeyPrefix + robot_name + "::actuators::fgc"),
@@ -41,7 +46,8 @@ public:
 		g_(dof),
 		q_des_(dof),
 		dq_des_(dof),
-		controller_state_(REDIS_SYNCHRONIZATION)
+		controller_state_(REDIS_SYNCHRONIZATION),
+    trajectory_(Trajectory::fromFile(trajectory_file_name))
 	{
 		command_torques_.setZero();
 
@@ -53,6 +59,14 @@ public:
 		// Desired end effector position
 		x_des_ << -0.1, 0.4, 0.7;
 		dx_des_.setZero();
+
+    // Set up trajectory iteration
+    currentToolpath_ = trajectory_.sequence.begin();
+    // std::cout << trajectory_.sequence.size() << std::endl;
+    // std::cout <<( currentToolpath_ == trajectory_.sequence.end()) << std::endl;
+    // std::cout << currentToolpath_->tool << std::endl;
+    currentToolpathPoint_ = currentToolpath_->points.begin();
+    // std::cout << *currentToolpathPoint_ << std::endl;
 	}
 
 	/***** Public functions *****/
@@ -83,6 +97,9 @@ protected:
 	const double kToleranceInitQ  = 0.1;  // Joint space initialization tolerance
 	const double kToleranceInitDq = 0.1;  // Joint space initialization tolerance
 	const double kMaxVelocity = 0.5;  // Maximum end effector velocity
+
+  const double kToleranceTrajectoryX = 0.01;
+  const double kToleranceTrajectoryDx = 0.01;
 
 	const int kControlFreq = 1000;         // 1 kHz control loop
 	const int kInitializationPause = 1e6;  // 1ms pause before starting control loop
@@ -121,6 +138,7 @@ protected:
 	void writeRedisValues();
 	ControllerStatus computeJointSpaceControlTorques();
 	ControllerStatus computeOperationalSpaceControlTorques();
+  Eigen::Vector3d ImagePointToOperationalPoint(Eigen::Vector2d image_point);
 
 	/***** Member variables *****/
 
@@ -156,6 +174,11 @@ protected:
 	double kv_ori_ = 10;
 	double kp_joint_ = 40;
 	double kv_joint_ = 10;
+
+  // Trajectory
+  Trajectory trajectory_;
+  TrajectorySequenceIterator currentToolpath_;
+  TrajectoryToolPathPointIterator currentToolpathPoint_;
 };
 
 #endif //CONTROLLER_H
