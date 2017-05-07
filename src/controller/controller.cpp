@@ -26,15 +26,15 @@ void Controller::readRedisValues() {
 	redis_client_.getEigenMatrixDerivedString(JOINT_VELOCITIES_KEY, robot->_dq);
 
 	// Get current simulation timestamp from Redis
-	t_curr_ = redis_client_.getDouble(TIMESTAMP_KEY);
+	redis_client_.getDouble(TIMESTAMP_KEY, &t_curr_);
 
 	// Read in KP and KV from Redis (can be changed on the fly in Redis)
-	kp_pos_ = redis_client_.getInt(KP_POSITION_KEY);
-  kv_pos_ = redis_client_.getInt(KV_POSITION_KEY);
-  kp_ori_ = redis_client_.getInt(KP_ORIENTATION_KEY);
-  kv_ori_ = redis_client_.getInt(KV_ORIENTATION_KEY);
-	kp_joint_ = redis_client_.getInt(KP_JOINT_KEY);
-  kv_joint_ = redis_client_.getInt(KV_JOINT_KEY);
+	redis_client_.getInt(KP_POSITION_KEY, &kp_pos_);
+  redis_client_.getInt(KV_POSITION_KEY, &kv_pos_);
+  redis_client_.getInt(KP_ORIENTATION_KEY, &kp_ori_);
+  redis_client_.getInt(KV_ORIENTATION_KEY, &kv_ori_);
+	redis_client_.getInt(KP_JOINT_KEY, &kp_joint_);
+  redis_client_.getInt(KV_JOINT_KEY, &kv_joint_);
 }
 
 /**

@@ -87,22 +87,40 @@ public:
 		return success;
 	}
 
-  int getInt(const string &cmd_mssg) {
+  bool getInt(const string &cmd_mssg, int *i) {
     string data;
-    getCommandIs(cmd_mssg, data);
-    return stoi(data);
+    bool success = getCommandIs(cmd_mssg, data);
+    if (success) {
+      *i = stoi(data);
+    }
+    return success;
   }
 
-  float getFloat(const string &cmd_mssg) {
+  bool getInt(const string &cmd_mssg, double *d) {
     string data;
-    getCommandIs(cmd_mssg, data);
-    return stof(data);
+    bool success = getCommandIs(cmd_mssg, data);
+    if (success) {
+      *d = stoi(data);
+    }
+    return success;
   }
 
-  double getDouble(const string &cmd_mssg) {
+  bool getFloat(const string &cmd_mssg, float *f) {
     string data;
-    getCommandIs(cmd_mssg, data);
-    return stod(data);
+    bool success = getCommandIs(cmd_mssg, data);
+    if (success) {
+      *f = stof(data);
+    }
+    return success;
+  }
+
+  bool getDouble(const string &cmd_mssg, double *d) {
+    string data;
+    bool success = getCommandIs(cmd_mssg, data);
+    if (success) {
+      *d = stod(data);
+    }
+    return success;
   }
 
 	void setCommandIs(const string &cmd_mssg, const string &data_mssg) {
@@ -116,7 +134,8 @@ public:
   }
 
   void setValueIfUninitialized(const string &key, const float value) {
-    if (!getFloat(key)) {
+    float f;
+    if (!getFloat(key, &f)) {
       setCommandIs(key, std::to_string(value));
     }
   }
