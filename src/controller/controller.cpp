@@ -210,14 +210,45 @@ void Controller::runLoop() {
           if (currentToolpathPoint_ == currentToolpath_->points.end()) {
             currentToolpath_++;
             if (currentToolpath_ == trajectory_.sequence.end()) {
-              cout << "Trajectory complete" << endl;
-              break; // TODO gracefully end
+              cout << "Trajectory complete. Holding position." << endl;
+							x_des_ = kToolChangePosition;
+							controller_state_ = Controller::TRAJECTORY_COMPLETE;
+              break;
             }
-            // TODO switch tools here
-            currentToolpathPoint_ = currentToolpath_->points.begin();
+    				// Switch tools
+						cout << "Moving to tool change position." << endl;
+						x_des_ = kToolChangePosition;
+						controller_state_ = MOVING_TO_TOOL_CHANGE;
+						break;
           }
           x_des_ = ImagePointToOperationalPoint(*currentToolpathPoint_);
         }
+				break;
+
+			case MOVING_TO_TOOL_CHANGE:
+				if (computeOperationalSpaceControlTorques() == FINISHED) {
+					// Arrived at tool change position
+					cout << "Beginning tool change." << endl;
+					// Rotate the tool carousel
+					// TODO x_des_ = new tool angle
+					controller_state_ = Controller::CHANGING_TOOL;
+					break;
+				}
+			  break;
+
+			case CHANGING_TOOL:
+				if (computeOperationalSpaceControlTorques() == FINISHED) {
+					// Tool changed. Start new tool path.
+					cout << "Tool change complete." << endl;
+					currentToolpathPoint_ = currentToolpath_->points.begin();
+					x_des_ = ImagePointToOperationalPoint(*currentToolpathPoint_);
+					controller_state_ = Controller::OP_SPACE_POSITION_CONTROL;
+					break;
+				}
+
+			case TRAJECTORY_COMPLETE:
+			  // Hold position
+				computeOperationalSpaceControlTorques();
 				break;
 
 			// Invalid state. Zero torques and exit program.

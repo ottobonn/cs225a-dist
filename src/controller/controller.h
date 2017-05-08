@@ -82,7 +82,10 @@ protected:
 	enum ControllerState {
 		REDIS_SYNCHRONIZATION,
 		JOINT_SPACE_INITIALIZATION,
-		OP_SPACE_POSITION_CONTROL
+		OP_SPACE_POSITION_CONTROL,
+    MOVING_TO_TOOL_CHANGE,
+    CHANGING_TOOL,
+    TRAJECTORY_COMPLETE
 	};
 
 	// Return values from computeControlTorques() methods
@@ -179,6 +182,7 @@ protected:
   Trajectory trajectory_;
   TrajectorySequenceIterator currentToolpath_;
   TrajectoryToolPathPointIterator currentToolpathPoint_;
+  const Eigen::Vector3d kToolChangePosition = Eigen::Vector3d(0.3, 0.3, 0.3);
 };
 
 #endif //CONTROLLER_H
