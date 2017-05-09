@@ -8,9 +8,9 @@ Drawing robot, Stanford CS225a Spring 2017
 
    ```git clone --recursive https://github.com/ottobonn/sketchy.git```
 
-3. Download sai2-simulation.zip from AFS and extract its contents into cs225a.git/sai2-simulation.
+3. Copy cs225a.git/sai2-simulation into sketchy/sai2-simulation.
 
-4. Run the install script inside cs225a.git. This will take a few minutes.
+4. Run the install script inside sketchy. This will take a few minutes.
 
    ```sh install.sh```
 
