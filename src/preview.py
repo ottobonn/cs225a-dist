@@ -11,7 +11,9 @@ def main(filename):
         plt.figure()
         for toolpath in trajectory["sequence"]:
             points = np.array(toolpath["points"])
-            plt.plot(points[:,0], points[:,1], "o")
+            plt.plot(points[:,0], points[:,1], "-o")
+        plt.xlim(-0.1, 1.1)
+        plt.ylim(-0.1, 1.1)
         plt.show()
     return 0
 
