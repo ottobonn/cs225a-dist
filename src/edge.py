@@ -4,7 +4,8 @@ import json
 
 input_image = 'robert.png'
 im = cv2.imread('imgs/' + input_image)
-im = cv2.resize(im, (im.shape[0], im.shape[1]))
+resize_index = 5
+im = cv2.resize(im, (im.shape[0]/resize_index, im.shape[1]/resize_index))
 gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
 blurred = cv2.GaussianBlur(im, (3, 3), 1)
 canny = cv2.Canny(blurred, 0, 255)
@@ -45,15 +46,27 @@ for l in contours:
     sequence.append(cell)
 outputJSON['sequence'] = sequence
 
-with open('robert.json', 'w') as outfile:
-    json.dump(outputJSON, outfile)
+# check if the output json works
+#with open('robert.json', 'w') as outfile:
+#    json.dump(outputJSON, outfile)
+#contours_out = []
+#with open('robert.json') as jsonfile:
+#    trajectory = json.load(jsonfile)
+#    for toolpath in trajectory["sequence"]:
+#        points = np.array(toolpath["points"])
+#        points_out = []
+#        for p in points:
+#            points_out.append([[int(max_pos*p[0]), int(max_pos*p[1])]])
+#        contours_out.append(np.array(points_out))
+#contours_out = np.array(contours_out)
 
 ######## end output JSON #####################
 
-# print contours
-#output = np.zeros(im.shape, np.uint8)
-#cv2.drawContours(output, contours, -1, (0, 255, 0), 1)
+#print contours_out
+output = np.zeros(im.shape, np.uint8)
+cv2.drawContours(output, contours, -1, (0, 255, 0), 1)
+#cv2.drawContours(output, contours_out, -1, (0, 255, 0), 1)
 #cv2.imshow('edges', output)
 #cv2.waitKey(10000)
 #cv2.destroyAllWindows()
-#cv2.imwrite('edges/' + input_image, output)
+cv2.imwrite('edges/' + input_image, output)
