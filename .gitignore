@@ -50,3 +50,6 @@ resources
 CMakeFiles/
 cmake_install.cmake
 Makefile
+
+# Vim swapfiles
+*.swp
