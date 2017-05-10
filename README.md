@@ -18,6 +18,14 @@ Drawing robot, Stanford CS225a Spring 2017
 
    ```sh make.sh```
 
+6. Run the sample trajectory
+
+In the `bin` directory, run
+
+    ./run_controller.sh controller resources/controller/world.urdf resources/controller/kuka_iiwa.urdf kuka ../src/sample-trajectories/squares.json
+
+to draw the demo squares with the kuka arm.
+
 ## Manual Installation Instructions (for any Linux distro or Mac)
 1. Install Brew for Mac (https://brew.sh/) or have Ubuntu installed or any other distro with the following packages. Also install git (sudo apt-get install git). Windows will have to dualboot ubuntu or install a VM.
 
