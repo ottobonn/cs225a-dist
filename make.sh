@@ -19,15 +19,10 @@ cd ..
 # Download resource files
 mkdir -p resources
 cd resources
-if [ ! -d "puma_graphics" ]; then
-	curl -L http://cs.stanford.edu/groups/manips/teaching/cs225a/resources/puma_graphics.zip -o puma_graphics.zip
-	unzip puma_graphics.zip
-	rm puma_graphics.zip
-fi
-if [ ! -d "kuka_iiwa_graphics" ]; then
-	curl -L http://cs.stanford.edu/groups/manips/teaching/cs225a/resources/kuka_iiwa_graphics.zip -o kuka_iiwa_graphics.zip
-	unzip kuka_iiwa_graphics.zip
-	rm kuka_iiwa_graphics.zip
+if [ ! -d "sawyer_graphics" ]; then
+	curl -L http://cs.stanford.edu/groups/manips/teaching/cs225a/resources/sawyer_graphics.zip -o sawyer_graphics.zip
+	unzip sawyer_graphics.zip
+	rm sawyer_graphics.zip
 fi
 cd ..
 
@@ -35,8 +30,8 @@ cd bin
 # Create controller files in bin
 if [ -f "controller" ]; then
 	cd resources/controller
-	if [ ! -e "kuka_iiwa_graphics" ]; then
-		ln -s ../../../resources/kuka_iiwa_graphics .
+	if [ ! -e "sawyer_graphics" ]; then
+		ln -s ../../../resources/sawyer_graphics .
 	fi
 	cd ../..
 fi
