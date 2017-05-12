@@ -152,20 +152,16 @@ void Controller::initialize() {
 }
 
 /**
- *
- *
- *
+ * Convert a point in the image plane (with coordinates on the interval [0, 1])
+ * to a point in 3D operational space.
  */
 Eigen::Vector3d Controller::ImagePointToOperationalPoint(Eigen::Vector2d image_point) {
-  // TODO incorporate variable image plane
-  // FIXME For now, just add z=0 to the 2D point and shift
   Eigen::Vector3d op_point;
-  Eigen::Vector2d image_bounds_min(0.2, 0.2), image_bounds_max(0.6, 0.6);
-  float x_size = image_bounds_max(0) - image_bounds_min(0);
-  float y_size = image_bounds_max(1) - image_bounds_min(1);
-  float x = (image_point(0) - 0.5) * x_size + image_bounds_min(0);
-  float y = image_point(1) * y_size + image_bounds_min(1);
-  op_point << x, y, 0.2;
+  float x_size = kImageBoundsMax(0) - kImageBoundsMin(0);
+  float y_size = kImageBoundsMax(1) - kImageBoundsMin(1);
+  float x = (image_point(0) - 0.5) * x_size + kImageBoundsMin(0);
+  float y = image_point(1) * y_size + kImageBoundsMin(1);
+  op_point << x, y, 0;
   return op_point;
 }
 

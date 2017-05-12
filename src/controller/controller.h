@@ -51,22 +51,18 @@ public:
 	{
 		command_torques_.setZero();
 
-		// Home configuration for Kuka iiwa
-		q_des_ << 0, 30, 0, 60, 0, 90, 0;
+		// Home configuration for joints
+		q_des_ << 0, -45, 0, 90, 0, -45, 0;
 		q_des_ *= M_PI / 180.0;
 		dq_des_.setZero();
 
 		// Desired end effector position
-		x_des_ << -0.1, 0.4, 0.7;
+		x_des_ << kToolChangePosition;
 		dx_des_.setZero();
 
     // Set up trajectory iteration
     currentToolpath_ = trajectory_.sequence.begin();
-    // std::cout << trajectory_.sequence.size() << std::endl;
-    // std::cout <<( currentToolpath_ == trajectory_.sequence.end()) << std::endl;
-    // std::cout << currentToolpath_->tool << std::endl;
     currentToolpathPoint_ = currentToolpath_->points.begin();
-    // std::cout << *currentToolpathPoint_ << std::endl;
 	}
 
 	/***** Public functions *****/
@@ -176,13 +172,16 @@ protected:
 	double kp_ori_ = 40;
 	double kv_ori_ = 10;
 	double kp_joint_ = 40;
-	double kv_joint_ = 10;
+	double kv_joint_ = 30;
 
   // Trajectory
   Trajectory trajectory_;
   TrajectorySequenceIterator currentToolpath_;
   TrajectoryToolPathPointIterator currentToolpathPoint_;
-  const Eigen::Vector3d kToolChangePosition = Eigen::Vector3d(0.3, 0.3, 0.3);
+  const Eigen::Vector3d kToolChangePosition = Eigen::Vector3d(0.75, 0, 0.3);
+	// The robot faces forward in the x direction, with y increasing to its left
+  const Eigen::Vector2d kImageBoundsMin = Eigen::Vector2d(0.6, -0.2);
+  const Eigen::Vector2d kImageBoundsMax = kImageBoundsMin + Eigen::Vector2d(0.4, 0.4);
 };
 
 #endif //CONTROLLER_H
