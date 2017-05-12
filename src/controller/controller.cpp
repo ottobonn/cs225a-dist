@@ -61,15 +61,19 @@ void Controller::updateModel() {
 	robot->updateModel();
 
 	// Forward kinematics
-	robot->position(x_, kEELinkName, Eigen::Vector3d::Zero());
-	robot->linearVelocity(dx_, kEELinkName, Eigen::Vector3d::Zero());
+	robot->position(x_, kWristLinkName, kWristCenterOffset);
+	robot->linearVelocity(dx_, kWristLinkName, kWristCenterOffset);
+	robot->rotation(R_wrist_, kWristLinkName);
+	robot->angularVelocity(omega_wrist_, kWristLinkName);
 
 	// Jacobians
-	robot->Jv(Jv_, kEELinkName, Eigen::Vector3d::Zero());
-	robot->nullspaceMatrix(N_, Jv_);
+	robot->Jv(Jv_, kWristLinkName, kWristCenterOffset);
+	robot->J(J_, kWristLinkName, kWristCenterOffset);
+	J5_ = J_.block(1, 0, 5, dof);
+	robot->nullspaceMatrix(N5_, J5_);
 
 	// Dynamics
-	robot->taskInertiaMatrixWithPseudoInv(Lambda_x_, Jv_);
+	robot->taskInertiaMatrixWithPseudoInv(Lambda0_, J5_);
 	robot->gravityVector(g_);
 }
 
@@ -100,23 +104,31 @@ Controller::ControllerStatus Controller::computeJointSpaceControlTorques() {
 Controller::ControllerStatus Controller::computeOperationalSpaceControlTorques() {
 	// PD position control with velocity saturation
 	Eigen::Vector3d x_err = x_ - x_des_;
-	// Eigen::Vector3d dx_err = dx_ - dx_des_;
-	// Eigen::Vector3d ddx = -kp_pos_ * x_err - kv_pos_ * dx_err_;
 	dx_des_ = -(kp_pos_ / kv_pos_) * x_err;
 	double v = kMaxVelocity / dx_des_.norm();
 	if (v > 1) v = 1;
 	Eigen::Vector3d dx_err = dx_ - v * dx_des_;
 	Eigen::Vector3d ddx = -kv_pos_ * dx_err;
 
-	// Nullspace posture control and damping
+	// Posture control and damping
 	Eigen::VectorXd q_err = robot->_q - q_des_;
+	q_err.setZero();
 	Eigen::VectorXd dq_err = robot->_dq - dq_des_;
 	Eigen::VectorXd ddq = -kp_joint_ * q_err - kv_joint_ * dq_err;
 
-	// Control torques
-	Eigen::Vector3d F_x = Lambda_x_ * ddx;
+	// Wrist orientation control
+	Eigen::Vector3d dPhi;
+  robot->orientationError(dPhi, R_wrist_des_, R_wrist_);
+	Eigen::Vector2d dPhi_ignoring_x = dPhi.tail(2);
+	Eigen::Vector2d omega_wrist_ignoring_x = omega_wrist_.tail(2);
+	Eigen::Vector2d orientation_accel = (kp_ori_ * -dPhi_ignoring_x) - (kv_ori_ * omega_wrist_ignoring_x);
+	Eigen::VectorXd accel(5);
+	accel << orientation_accel, ddx;
+
+	// Control torques with posture projected into the nullspace of the 5-dof task
+	Eigen::VectorXd F = Lambda0_ * accel;
 	Eigen::VectorXd F_posture = robot->_M * ddq;
-	command_torques_ = Jv_.transpose() * F_x + N_.transpose() * F_posture + g_;
+	command_torques_ = J5_.transpose() * F + N5_.transpose() * F_posture + g_;
 
   if (x_err.norm() < kToleranceTrajectoryX
       && dx_err.norm() < kToleranceTrajectoryDx) {
