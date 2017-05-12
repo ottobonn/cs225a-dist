@@ -68,7 +68,13 @@ private:
       }
       float x = point[0].asFloat();
       float y = point[1].asFloat();
-      result.points.push_back(Eigen::Vector2d(x, y));
+      Eigen::Vector2d v(x, y);
+      for (size_t i = 0; i < 2; i++) {
+        if (v(i) < 0 || v(i) > 1) {
+          throw TrajectoryParsingException("Each tool path coordinate must be on the interval [0, 1]");
+        }
+      }
+      result.points.push_back(v);
     }
     return result;
   }
