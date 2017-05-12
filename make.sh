@@ -39,6 +39,9 @@ fi
 if [ ! -e "run_controller.sh" ]; then
 	ln -s ../src/run_controller.sh .
 fi
+if [ ! -e "run_2.sh" ]; then
+	ln -s ../src/run_2.sh .
+fi
 cd ..
 
 cd bin
