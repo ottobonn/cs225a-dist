@@ -182,6 +182,7 @@ Eigen::Vector3d Controller::ImagePointToOperationalPoint(Eigen::Vector2d image_p
   float x = (image_point(0) - 0.5) * x_size + kImageBoundsMin(0);
   float y = image_point(1) * y_size + kImageBoundsMin(1);
   op_point << x, y, 0;
+	op_point -= kToolTipOffset; // Shift goal position by offset from wrist to tool tip
   return op_point;
 }
 

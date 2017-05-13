@@ -215,7 +215,7 @@ protected:
 	// The offset from the wrist to the marker tip:
 	// The coordinates are with respect to the wrist.
 	// Add the EE mount offset and the tool's tip offset from that mount point
-	const Eigen::Vector3d kToolTipOffset = kWristToEEMountOffset + Eigen::Vector3d(0, 0, 0);
+	const Eigen::Vector3d kToolTipOffset = kWristToEEMountOffset + Eigen::Vector3d(0, 0, -0.2);
 };
 
 #endif //CONTROLLER_H
