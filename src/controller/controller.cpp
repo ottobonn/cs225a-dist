@@ -74,7 +74,9 @@ void Controller::updateModel() {
 
 	// Dynamics
 	robot->taskInertiaMatrixWithPseudoInv(Lambda0_, J5_);
-	robot->gravityVector(g_);
+	
+	// Ignore gravity because Sawyer compensates for it automatically
+	// robot->gravityVector(g_);
 }
 
 /**

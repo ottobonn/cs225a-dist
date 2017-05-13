@@ -66,6 +66,9 @@ public:
 		// Desired marker carousel rotation
 		marker_q_des_ = 0;
 
+		// Ignore gravity because Sawyer compensates for it automatically
+		g_.setZero();
+
     // Set up trajectory iteration
     currentToolpath_ = trajectory_.sequence.begin();
     currentToolpathPoint_ = currentToolpath_->points.begin();
