@@ -58,10 +58,6 @@ public:
 		q_des_ *= M_PI / 180.0;
 		dq_des_.setZero();
 
-		// Desired end effector position
-		x_des_ << kToolChangePosition;
-		dx_des_.setZero();
-
 		// Desired wrist rotation (parallel to yz plane)
 		R_wrist_des_ << 0, -1,  0,
 										1,  0,  0,
@@ -150,6 +146,7 @@ protected:
 	ControllerStatus computeOperationalSpaceControlTorques();
 	ControllerStatus computeToolChangeControlTorques();
   Eigen::Vector3d ImagePointToOperationalPoint(Eigen::Vector2d image_point);
+	Eigen::Vector3d ToolChangePosition();
 
 	/***** Member variables *****/
 
@@ -197,7 +194,7 @@ protected:
   Trajectory trajectory_;
   TrajectorySequenceIterator currentToolpath_;
   TrajectoryToolPathPointIterator currentToolpathPoint_;
-  const Eigen::Vector3d kToolChangePosition = Eigen::Vector3d(0.75, 0, 0.3);
+  const double kToolChangeOffset = 0.2;
 
 	// The robot faces forward in the x direction, with y increasing to its left
   const Eigen::Vector2d kImageBoundsMin = Eigen::Vector2d(0.6, -0.2);

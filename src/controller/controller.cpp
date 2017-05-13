@@ -172,6 +172,20 @@ void Controller::initialize() {
 }
 
 /**
+ * Compute the tool change position nearby a given image point.
+ */
+Eigen::Vector3d Controller::ToolChangePosition() {
+	// Find z-offset from image plane to goal position
+	double z_offset = ImagePointToOperationalPoint(Eigen::Vector2d(0, 0))(2);
+	// Add the tool change offset
+	z_offset += kToolChangeOffset;
+	// Find easiest tool change height
+	double z = x_(2) > z_offset ? x_(2) : z_offset;
+	// Adjust z height of current wrist position
+	return Eigen::Vector3d(x_(0), x_(1), z);
+}
+
+/**
  * Convert a point in the image plane (with coordinates on the interval [0, 1])
  * to a point in 3D operational space.
  */
@@ -213,7 +227,8 @@ void Controller::runLoop() {
 			case JOINT_SPACE_INITIALIZATION:
 				if (computeJointSpaceControlTorques() == FINISHED) {
 					cout << "Joint position initialized. Initializing tool position." << endl;
-					x_des_ = kToolChangePosition;
+					x_des_ = ToolChangePosition();
+					dx_des_.setZero();
 					controller_state_ = Controller::MOVING_TO_TOOL_CHANGE;
 					break;
 				}
@@ -229,13 +244,13 @@ void Controller::runLoop() {
             currentToolpath_++;
             if (currentToolpath_ == trajectory_.sequence.end()) {
               cout << "Trajectory complete. Holding position." << endl;
-							x_des_ = kToolChangePosition;
+							x_des_ = ToolChangePosition();
 							controller_state_ = Controller::TRAJECTORY_COMPLETE;
               break;
             }
     				// Switch tools
 						cout << "Moving to tool change position." << endl;
-						x_des_ = kToolChangePosition;
+						x_des_ = ToolChangePosition();
 						controller_state_ = MOVING_TO_TOOL_CHANGE;
 						break;
           }
