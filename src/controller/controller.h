@@ -103,8 +103,8 @@ protected:
 	/***** Constants *****/
 
 	const int dof;  // Initialized with robot model
-	const double kToleranceInitQ  = 0.1;  // Joint space initialization tolerance
-	const double kToleranceInitDq = 0.1;  // Joint space initialization tolerance
+	const double kToleranceQ  = 0.1;  // Joint space initialization tolerance
+	const double kToleranceDq = 0.1;  // Joint space initialization tolerance
 	const double kMaxVelocity = 0.5;  // Maximum end effector velocity
 
   const double kToleranceTrajectoryX = 0.01;
@@ -148,6 +148,7 @@ protected:
 	void writeRedisValues();
 	ControllerStatus computeJointSpaceControlTorques();
 	ControllerStatus computeOperationalSpaceControlTorques();
+	ControllerStatus computeToolChangeControlTorques();
   Eigen::Vector3d ImagePointToOperationalPoint(Eigen::Vector2d image_point);
 
 	/***** Member variables *****/
@@ -201,6 +202,8 @@ protected:
 	// The robot faces forward in the x direction, with y increasing to its left
   const Eigen::Vector2d kImageBoundsMin = Eigen::Vector2d(0.6, -0.2);
   const Eigen::Vector2d kImageBoundsMax = kImageBoundsMin + Eigen::Vector2d(0.4, 0.4);
+
+	const double kToolIntervalRadians = 2 * M_PI / 8;
 
 	// Offset from wrist joint to wrist center (intersection of wrist and EE axes)
 	const Eigen::Vector3d kWristCenterOffset = Eigen::Vector3d(0, 0, 0.0695);

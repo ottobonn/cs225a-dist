@@ -86,7 +86,7 @@ Controller::ControllerStatus Controller::computeJointSpaceControlTorques() {
 	// Finish if the robot has converged to q_initial
 	Eigen::VectorXd q_err = robot->_q - q_des_;
 	Eigen::VectorXd dq_err = robot->_dq - dq_des_;
-	if (q_err.norm() < kToleranceInitQ && dq_err.norm() < kToleranceInitDq) {
+	if (q_err.norm() < kToleranceQ && dq_err.norm() < kToleranceDq) {
 		return FINISHED;
 	}
 
@@ -131,11 +131,19 @@ Controller::ControllerStatus Controller::computeOperationalSpaceControlTorques()
 	command_torques_ = J5_.transpose() * F + N5_.transpose() * F_posture + g_;
 
   if (x_err.norm() < kToleranceTrajectoryX
-      && dx_err.norm() < kToleranceTrajectoryDx) {
+    && dx_err.norm() < kToleranceTrajectoryDx) {
     return FINISHED;
   } else {
     return RUNNING;
   }
+}
+
+Controller::ControllerStatus Controller::computeToolChangeControlTorques() {
+	// Hold position for tool change
+	q_des_ = robot->_q;
+	// Rotate the tool carousel
+	q_des_(dof - 1) = marker_q_des_;
+	return computeJointSpaceControlTorques();
 }
 
 /**
@@ -203,9 +211,10 @@ void Controller::runLoop() {
 			// Initialize robot to default joint configuration
 			case JOINT_SPACE_INITIALIZATION:
 				if (computeJointSpaceControlTorques() == FINISHED) {
-					cout << "Joint position initialized. Switching to operational space controller." << endl;
-					controller_state_ = Controller::OP_SPACE_POSITION_CONTROL;
-          x_des_ = ImagePointToOperationalPoint(*currentToolpathPoint_);
+					cout << "Joint position initialized. Initializing tool position." << endl;
+					x_des_ = kToolChangePosition;
+					controller_state_ = Controller::MOVING_TO_TOOL_CHANGE;
+					break;
 				}
 				break;
 
@@ -238,14 +247,14 @@ void Controller::runLoop() {
 					// Arrived at tool change position
 					cout << "Beginning tool change." << endl;
 					// Rotate the tool carousel
-					// TODO x_des_ = new tool angle
+					marker_q_des_ = kToolIntervalRadians * currentToolpath_->tool;
 					controller_state_ = Controller::CHANGING_TOOL;
 					break;
 				}
 			  break;
 
 			case CHANGING_TOOL:
-				if (computeOperationalSpaceControlTorques() == FINISHED) {
+				if (computeToolChangeControlTorques() == FINISHED) {
 					// Tool changed. Start new tool path.
 					cout << "Tool change complete." << endl;
 					currentToolpathPoint_ = currentToolpath_->points.begin();
@@ -253,6 +262,7 @@ void Controller::runLoop() {
 					controller_state_ = Controller::OP_SPACE_POSITION_CONTROL;
 					break;
 				}
+				break;
 
 			case TRAJECTORY_COMPLETE:
 			  // Hold position
