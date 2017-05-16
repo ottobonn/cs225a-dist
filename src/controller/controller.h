@@ -55,13 +55,12 @@ public:
 		q_des_ *= M_PI / 180.0;
 		dq_des_.setZero();
 
-		// Desired wrist rotation (parallel to yz plane)
-		R_wrist_des_ << 0, -1,  0,
-										1,  0,  0,
-										0,  0,  1;
+		// Desired end-effector rotation
+		// (Set in operational-space torque control law functions)
+		R_des_.setIdentity();
 
 		// Desired marker carousel rotation
-		marker_q_des_ = 0;
+		tool_angle_des_ = 0;
 
 		// Ignore gravity because Sawyer compensates for it automatically
 		g_.setZero();
@@ -105,12 +104,12 @@ protected:
 
   const double kToleranceTrajectoryX = 0.01;
   const double kToleranceTrajectoryDx = 0.01;
+	const double kToleranceTrajectoryR = 0.001;
 
 	const int kControlFreq = 1000;         // 1 kHz control loop
 	const int kInitializationPause = 1e6;  // 1ms pause before starting control loop
 
-	// URDF wirst link name (refers to base of wrist)
-  const string kWristLinkName = "right_l5";
+	const string kEELinkName = "right_l6";
 
 	const HiredisServerInfo kRedisServerInfo = {
 		"127.0.0.1",  // hostname
@@ -144,8 +143,9 @@ protected:
 	void writeRedisValues();
 	ControllerStatus computeJointSpaceControlTorques();
 	ControllerStatus computeOperationalSpaceControlTorques();
-	ControllerStatus computeToolChangeControlTorques();
-	ControllerStatus OSControlLawEEForwardPlane();
+	Eigen::Matrix3d R_des();
+	ControllerStatus OSControlLawZSpin();
+	ControllerStatus OSControlLaw6DOF();
   Eigen::Vector3d ImagePointToOperationalPoint(Eigen::Vector2d image_point);
 	Eigen::Vector3d ToolChangePosition();
 
@@ -175,15 +175,15 @@ protected:
 	Eigen::Vector3d x_, dx_;
 	Eigen::VectorXd q_des_, dq_des_;
 	Eigen::Vector3d x_des_, dx_des_;
-	Eigen::Matrix3d R_wrist_;
-	Eigen::Matrix3d R_wrist_des_;
-	Eigen::Vector3d omega_wrist_;
-	float marker_q_des_; // radians!
+	Eigen::Matrix3d R_;
+	Eigen::Matrix3d R_des_;
+	Eigen::Vector3d omega_;
+	float tool_angle_des_; // radians!
 
 	// Default gains (used only when keys are nonexistent in Redis)
 	double kp_pos_ = 40;
 	double kv_pos_ = 10;
-	double kp_ori_ = 40;
+	double kp_ori_ = 100;
 	double kv_ori_ = 10;
 	double kp_joint_ = 40;
 	double kv_joint_ = 30;
@@ -195,22 +195,16 @@ protected:
   const double kToolChangeOffset = 0.2;
 
 	// The robot faces forward in the x direction, with y increasing to its left
-  const Eigen::Vector2d kImageBoundsMin = Eigen::Vector2d(0.6, -0.2);
+  const Eigen::Vector2d kImageBoundsMin = Eigen::Vector2d(0.7, -0.2);
   const Eigen::Vector2d kImageBoundsMax = kImageBoundsMin + Eigen::Vector2d(0.4, 0.4);
 
 	const double kToolIntervalRadians = 2 * M_PI / 8;
 
-	// Offset from wrist joint to wrist center (intersection of wrist and EE axes)
-	const Eigen::Vector3d kWristCenterOffset = Eigen::Vector3d(0, 0, 0.0695);
-
-
-	// The offset from the base of the wrist to the end-effector mount plate
-	// TODO find the second vector here, to go from EE center to EE plate
-	const Eigen::Vector3d kWristToEEMountOffset = Eigen::Vector3d(0, -0.11, 0.1053) + Eigen::Vector3d(0, 0, 0.00068);
-	// The offset from the wrist to the marker tip:
-	// The coordinates are with respect to the wrist.
-	// Add the EE mount offset and the tool's tip offset from that mount point
-	const Eigen::Vector3d kToolTipOffset = kWristToEEMountOffset + Eigen::Vector3d(0, 0, -0.2);
+	// The offset from the end-effector frame origin to the end-effector mount plate
+	const Eigen::Vector3d kEEMountOffset = Eigen::Vector3d(0, 0, 0.03);
+	// The offset from the end-effector origin to the tool tip
+	// TODO measure actual tool length
+	const Eigen::Vector3d kToolTipOffset = kEEMountOffset + Eigen::Vector3d(0, 0, -0.2);
 };
 
 #endif //CONTROLLER_H

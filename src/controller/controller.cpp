@@ -61,14 +61,14 @@ void Controller::updateModel() {
 	robot->updateModel();
 
 	// Forward kinematics
-	robot->position(x_, kWristLinkName, kWristCenterOffset);
-	robot->linearVelocity(dx_, kWristLinkName, kWristCenterOffset);
-	robot->rotation(R_wrist_, kWristLinkName);
-	robot->angularVelocity(omega_wrist_, kWristLinkName);
+	robot->position(x_, kEELinkName, Eigen::Vector3d(0, 0, 0));
+	robot->linearVelocity(dx_, kEELinkName, Eigen::Vector3d(0, 0, 0));
+	robot->rotation(R_, kEELinkName);
+	robot->angularVelocity(omega_, kEELinkName);
 
 	// Jacobians
-	robot->Jv(Jv_, kWristLinkName, kWristCenterOffset);
-	robot->J(J_, kWristLinkName, kWristCenterOffset);
+	robot->Jv(Jv_, kEELinkName, Eigen::Vector3d(0, 0, 0));
+	robot->J(J_, kEELinkName, Eigen::Vector3d(0, 0, 0));
 
 	// Ignore gravity because Sawyer compensates for it automatically
 	// robot->gravityVector(g_);
@@ -93,8 +93,14 @@ Controller::ControllerStatus Controller::computeJointSpaceControlTorques() {
 	return RUNNING;
 }
 
-Controller::ControllerStatus Controller::OSControlLawEEForwardPlane() {
-	Eigen::MatrixXd J5 = J_.block(1, 0, 5, dof);
+Controller::ControllerStatus Controller::OSControlLawZSpin() {
+	// Keep the end effector facing forward (but we will ignore z spin)
+	R_des_ << 0,  0,  1,
+						0,  1,  0,
+					 -1,  0,  0;
+
+	Eigen::MatrixXd J5(5, dof);
+	J5 << J_.block(0, 0, 2, dof), J_.block(3, 0, 3, dof);
 	Eigen::MatrixXd N5(dof, dof);
 	robot->nullspaceMatrix(N5, J5);
 	Eigen::MatrixXd Lambda0(5, 5);
@@ -115,12 +121,11 @@ Controller::ControllerStatus Controller::OSControlLawEEForwardPlane() {
 
 	// Wrist orientation control
 	Eigen::Vector3d dPhi;
-	robot->orientationError(dPhi, R_wrist_des_, R_wrist_);
-	Eigen::Vector2d dPhi_ignoring_x = dPhi.tail(2);
-	Eigen::Vector2d omega_wrist_ignoring_x = omega_wrist_.tail(2);
-	Eigen::Vector2d orientation_accel = (kp_ori_ * -dPhi_ignoring_x) - (kv_ori_ * omega_wrist_ignoring_x);
+	robot->orientationError(dPhi, R_des_, R_);
+	Eigen::Vector3d orientation_accel = (kp_ori_ * -dPhi) - (kv_ori_ * omega_);
+
 	Eigen::VectorXd accel(5);
-	accel << orientation_accel, ddx;
+	accel << orientation_accel.head(2), ddx;
 
 	// Control torques with posture projected into the nullspace of the 5-dof task
 	Eigen::VectorXd F = Lambda0 * accel;
@@ -135,21 +140,94 @@ Controller::ControllerStatus Controller::OSControlLawEEForwardPlane() {
 	}
 }
 
+Controller::ControllerStatus Controller::OSControlLaw6DOF() {
+	Eigen::MatrixXd N(dof, dof);
+	robot->nullspaceMatrix(N, J_);
+	Eigen::MatrixXd Lambda0(6, 6);
+	robot->taskInertiaMatrixWithPseudoInv(Lambda0, J_);
+
+	// PD position control with velocity saturation
+	Eigen::Vector3d x_err = x_ - x_des_;
+	dx_des_ = -(kp_pos_ / kv_pos_) * x_err;
+	double v = kMaxVelocity / dx_des_.norm();
+	if (v > 1) v = 1;
+	Eigen::Vector3d dx_err = dx_ - v * dx_des_;
+	Eigen::Vector3d ddx = -kv_pos_ * dx_err;
+
+	// Posture control and damping
+	Eigen::VectorXd q_err = robot->_q - q_des_;
+	Eigen::VectorXd dq_err = robot->_dq - dq_des_;
+	Eigen::VectorXd ddq = -kp_joint_ * q_err - kv_joint_ * dq_err;
+
+	// Wrist orientation control
+	Eigen::Vector3d dPhi;
+	robot->orientationError(dPhi, R_des_, R_);
+	Eigen::Vector3d orientation_accel = (kp_ori_ * -dPhi) - (kv_ori_ * omega_);
+
+	Eigen::VectorXd accel(6);
+	accel << orientation_accel, ddx;
+
+	// Control torques with posture projected into the nullspace of the 5-dof task
+	Eigen::VectorXd F = Lambda0 * accel;
+	Eigen::VectorXd F_posture = robot->_M * ddq;
+	command_torques_ = J_.transpose() * F + N.transpose() * F_posture + g_;
+
+	if (
+		x_err.norm() < kToleranceTrajectoryX
+		&& dx_err.norm() < kToleranceTrajectoryDx
+	  && (R_ - R_des_).norm() < kToleranceTrajectoryR
+	) {
+		return FINISHED;
+	} else {
+		return RUNNING;
+	}
+}
+
+Eigen::Matrix3d Controller::R_des() {
+	Eigen::Matrix3d R_des;
+	// Keep the end effector facing forward (rotate default frame about z)
+	R_des << 0,  0,  1,
+					 0,  1,  0,
+					-1,  0,  0;
+
+	// Keep the end effector facing outward by rotating R_des_ about z
+	// FIXME this rotation misaligns the tool-change rotation
+	// Eigen::MatrixXd R_out(3, 3);
+	// Eigen::Vector3d base_pos;
+	// robot->position(base_pos, "base", Eigen::Vector3d(0, 0, 0));
+	// Eigen::Vector3d base_to_EE = x_ - base_pos;
+	// double theta;
+	// if (base_to_EE(0) > 0) {
+	// 	theta = atan(base_to_EE(1) / base_to_EE(0));
+	// } else {
+	// 	theta = 0;
+	// }
+	// R_out << cos(theta),  	sin(theta),  	0,
+	// 				 sin(theta),    -cos(theta),  0,
+	// 				 0,  						0,  					1;
+	// R_des = R_out * R_des;
+
+	// Rotate the end-effector plate to select the current tool
+	Eigen::MatrixXd R_tool(3, 3);
+	R_tool << 1,	0,										0,
+						0,  cos(tool_angle_des_),	-sin(tool_angle_des_),
+						0,	sin(tool_angle_des_),	cos(tool_angle_des_);
+	R_des = R_tool * R_des;
+	return R_des;
+}
+
 /**
  * Controller::computeOperationalSpaceControlTorques()
  * ----------------------------------------------------
  * Controller to move end effector to desired position.
  */
 Controller::ControllerStatus Controller::computeOperationalSpaceControlTorques() {
-	return OSControlLawEEForwardPlane();
-}
+	// Find current desired rotation
+	R_des_ = R_des();
 
-Controller::ControllerStatus Controller::computeToolChangeControlTorques() {
-	// Hold position for tool change
-	q_des_ = robot->_q;
-	// Rotate the tool carousel
-	q_des_(dof - 1) = marker_q_des_;
-	return computeJointSpaceControlTorques();
+	// Compute torques
+	// return OSControlLawZSpin();
+  return OSControlLaw6DOF();
 }
 
 /**
@@ -257,7 +335,7 @@ void Controller::runLoop() {
     				// Switch tools
 						cout << "Moving to tool change position." << endl;
 						x_des_ = ToolChangePosition();
-						controller_state_ = MOVING_TO_TOOL_CHANGE;
+						controller_state_ = Controller::MOVING_TO_TOOL_CHANGE;
 						break;
           }
           x_des_ = ImagePointToOperationalPoint(*currentToolpathPoint_);
@@ -269,14 +347,14 @@ void Controller::runLoop() {
 					// Arrived at tool change position
 					cout << "Beginning tool change." << endl;
 					// Rotate the tool carousel
-					marker_q_des_ = kToolIntervalRadians * currentToolpath_->tool;
+					tool_angle_des_ = kToolIntervalRadians * currentToolpath_->tool;
 					controller_state_ = Controller::CHANGING_TOOL;
 					break;
 				}
 			  break;
 
 			case CHANGING_TOOL:
-				if (computeToolChangeControlTorques() == FINISHED) {
+				if (computeOperationalSpaceControlTorques() == FINISHED) {
 					// Tool changed. Start new tool path.
 					cout << "Tool change complete." << endl;
 					currentToolpathPoint_ = currentToolpath_->points.begin();
