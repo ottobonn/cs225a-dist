@@ -94,10 +94,10 @@ def colorPath(image,image_width,image_height):
     for col in range(image_width):
         start = 0
         for row in range(image_height): # straight lines from up to down
-            if image[row][col]=1: # start and inside the line
+            if image[row][col] == 1: # start and inside the line
                 start = 1
                 line.append([row,col])
-            else if image[row][col]=0 && start = 1: # end of line
+            else if image[row][col] == 0 and start == 1: # end of line
                 # only draw lines that are >=3 pixels. avoiding sharp shapes.
                 if len(line)>=3:
                     path.append(line)
