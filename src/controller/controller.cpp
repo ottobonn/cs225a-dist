@@ -69,12 +69,7 @@ void Controller::updateModel() {
 	// Jacobians
 	robot->Jv(Jv_, kWristLinkName, kWristCenterOffset);
 	robot->J(J_, kWristLinkName, kWristCenterOffset);
-	J5_ = J_.block(1, 0, 5, dof);
-	robot->nullspaceMatrix(N5_, J5_);
 
-	// Dynamics
-	robot->taskInertiaMatrixWithPseudoInv(Lambda0_, J5_);
-	
 	// Ignore gravity because Sawyer compensates for it automatically
 	// robot->gravityVector(g_);
 }
@@ -98,12 +93,13 @@ Controller::ControllerStatus Controller::computeJointSpaceControlTorques() {
 	return RUNNING;
 }
 
-/**
- * Controller::computeOperationalSpaceControlTorques()
- * ----------------------------------------------------
- * Controller to move end effector to desired position.
- */
-Controller::ControllerStatus Controller::computeOperationalSpaceControlTorques() {
+Controller::ControllerStatus Controller::OSControlLawEEForwardPlane() {
+	Eigen::MatrixXd J5 = J_.block(1, 0, 5, dof);
+	Eigen::MatrixXd N5(dof, dof);
+	robot->nullspaceMatrix(N5, J5);
+	Eigen::MatrixXd Lambda0(5, 5);
+	robot->taskInertiaMatrixWithPseudoInv(Lambda0, J5);
+
 	// PD position control with velocity saturation
 	Eigen::Vector3d x_err = x_ - x_des_;
 	dx_des_ = -(kp_pos_ / kv_pos_) * x_err;
@@ -114,13 +110,12 @@ Controller::ControllerStatus Controller::computeOperationalSpaceControlTorques()
 
 	// Posture control and damping
 	Eigen::VectorXd q_err = robot->_q - q_des_;
-	q_err.setZero();
 	Eigen::VectorXd dq_err = robot->_dq - dq_des_;
 	Eigen::VectorXd ddq = -kp_joint_ * q_err - kv_joint_ * dq_err;
 
 	// Wrist orientation control
 	Eigen::Vector3d dPhi;
-  robot->orientationError(dPhi, R_wrist_des_, R_wrist_);
+	robot->orientationError(dPhi, R_wrist_des_, R_wrist_);
 	Eigen::Vector2d dPhi_ignoring_x = dPhi.tail(2);
 	Eigen::Vector2d omega_wrist_ignoring_x = omega_wrist_.tail(2);
 	Eigen::Vector2d orientation_accel = (kp_ori_ * -dPhi_ignoring_x) - (kv_ori_ * omega_wrist_ignoring_x);
@@ -128,16 +123,25 @@ Controller::ControllerStatus Controller::computeOperationalSpaceControlTorques()
 	accel << orientation_accel, ddx;
 
 	// Control torques with posture projected into the nullspace of the 5-dof task
-	Eigen::VectorXd F = Lambda0_ * accel;
+	Eigen::VectorXd F = Lambda0 * accel;
 	Eigen::VectorXd F_posture = robot->_M * ddq;
-	command_torques_ = J5_.transpose() * F + N5_.transpose() * F_posture + g_;
+	command_torques_ = J5.transpose() * F + N5.transpose() * F_posture + g_;
 
-  if (x_err.norm() < kToleranceTrajectoryX
-    && dx_err.norm() < kToleranceTrajectoryDx) {
-    return FINISHED;
-  } else {
-    return RUNNING;
-  }
+	if (x_err.norm() < kToleranceTrajectoryX
+		&& dx_err.norm() < kToleranceTrajectoryDx) {
+		return FINISHED;
+	} else {
+		return RUNNING;
+	}
+}
+
+/**
+ * Controller::computeOperationalSpaceControlTorques()
+ * ----------------------------------------------------
+ * Controller to move end effector to desired position.
+ */
+Controller::ControllerStatus Controller::computeOperationalSpaceControlTorques() {
+	return OSControlLawEEForwardPlane();
 }
 
 Controller::ControllerStatus Controller::computeToolChangeControlTorques() {

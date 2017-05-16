@@ -42,9 +42,6 @@ public:
 		command_torques_(dof),
 		Jv_(3, dof),
 		J_(6, dof),
-		J5_(5, dof),
-		N5_(dof, dof),
-		Lambda0_(5, 5),
 		g_(dof),
 		q_des_(dof),
 		dq_des_(dof),
@@ -148,6 +145,7 @@ protected:
 	ControllerStatus computeJointSpaceControlTorques();
 	ControllerStatus computeOperationalSpaceControlTorques();
 	ControllerStatus computeToolChangeControlTorques();
+	ControllerStatus OSControlLawEEForwardPlane();
   Eigen::Vector3d ImagePointToOperationalPoint(Eigen::Vector2d image_point);
 	Eigen::Vector3d ToolChangePosition();
 
@@ -172,10 +170,7 @@ protected:
 	Eigen::VectorXd command_torques_;
 	Eigen::MatrixXd Jv_;
 	Eigen::MatrixXd J_;
-	Eigen::MatrixXd J5_;
 	Eigen::MatrixXd N_;
-	Eigen::MatrixXd N5_;
-	Eigen::MatrixXd Lambda0_;
 	Eigen::VectorXd g_;
 	Eigen::Vector3d x_, dx_;
 	Eigen::VectorXd q_des_, dq_des_;
