@@ -26,14 +26,7 @@ def main(input_image, output_contour_dir, output_json_dir):
     ######## output contours as JOSN file ####### 
 
     # find the max position to normalize the postions
-    max_pos = 0
-    for l in contours:
-        for p in l:
-            p1 = p[0]
-            if p1[0] > max_pos:
-                max_pos = p1[0]
-            if p1[1] > max_pos:
-                max_pos = p1[1]
+    max_pos = max(resize_width, resize_height)
 
     # build JSON object
     outputJSON = {}
