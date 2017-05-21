@@ -209,9 +209,12 @@ Eigen::Matrix3d Controller::R_des() {
 
 	// Rotate the end-effector plate to select the current tool
 	Eigen::MatrixXd R_tool(3, 3);
+	// Center the joint so angles are -180 to 180 and compensate for plate drill
+	// offset of 22.5 degrees
+	float centered_tool_angle = tool_angle_des_ - M_PI - M_PI / 8;
 	R_tool << 1,	0,										0,
-						0,  cos(tool_angle_des_),	-sin(tool_angle_des_),
-						0,	sin(tool_angle_des_),	cos(tool_angle_des_);
+						0,  cos(centered_tool_angle),	-sin(centered_tool_angle),
+						0,	sin(centered_tool_angle),	cos(centered_tool_angle);
 	R_des = R_tool * R_des;
 	return R_des;
 }

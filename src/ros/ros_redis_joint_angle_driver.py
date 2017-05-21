@@ -26,7 +26,7 @@ class JointAngleDriver(object):
         print("Running. Ctrl-c to quit")
 
         # reset redis q values so they aren't random
-        self._redis.set('cs225a::robot::sawyer::sensors::q', '0 0 0 0 0 0 0')
+        self._redis.set('cs225a::robot::sawyer::sensors::q', '0 -0.7854 0 1.5708 0 -0.7854 0')
 
     def move_to_neutral(self):
         """

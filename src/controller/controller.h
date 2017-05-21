@@ -100,7 +100,7 @@ protected:
 	const int dof;  // Initialized with robot model
 	const double kToleranceQ  = 0.1;  // Joint space initialization tolerance
 	const double kToleranceDq = 0.1;  // Joint space initialization tolerance
-	const double kMaxVelocity = 0.5;  // Maximum end effector velocity
+	const double kMaxVelocity = 0.1;  // Maximum end effector velocity
 
   const double kToleranceTrajectoryX = 0.01;
   const double kToleranceTrajectoryDx = 0.01;
@@ -184,7 +184,7 @@ protected:
 	double kp_pos_ = 40;
 	double kv_pos_ = 10;
 	double kp_ori_ = 100;
-	double kv_ori_ = 10;
+	double kv_ori_ = 50;
 	double kp_joint_ = 40;
 	double kv_joint_ = 30;
 
