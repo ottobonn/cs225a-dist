@@ -77,10 +77,10 @@ public:
     currentToolpathPoint_ = currentToolpath_->points.begin();
 
 		// Set up image bounds
-		image_corners.bottom_left = Eigen::Vector3d(0.7, -0.2, 0);
-		image_corners.bottom_right = Eigen::Vector3d(0.7, 0.2, 0);
-		image_corners.top_left = Eigen::Vector3d(1.1, -0.2, 0);
-		image_corners.top_right = Eigen::Vector3d(1.1, 0.2, 0);
+		image_corners.bottom_left = Eigen::Vector3d(0.4, 0.2, 0.0025);
+		image_corners.bottom_right = Eigen::Vector3d(0.4, -0.2, 0.0025);
+		image_corners.top_left = Eigen::Vector3d(0.8, 0.2, -0.0001);
+		image_corners.top_right = Eigen::Vector3d(0.8, -0.2, -0.005);
 	}
 
 	/***** Public functions *****/
@@ -99,6 +99,7 @@ protected:
 		OP_SPACE_POSITION_CONTROL,
     MOVING_TO_TOOL_CHANGE,
     CHANGING_TOOL,
+    MOVING_FROM_TOOL_CHANGE,
     TRAJECTORY_COMPLETE
 	};
 
@@ -205,7 +206,7 @@ protected:
   Trajectory trajectory_;
   TrajectorySequenceIterator currentToolpath_;
   TrajectoryToolPathPointIterator currentToolpathPoint_;
-  const double kToolChangeOffset = 0.2;
+  const double kToolChangeOffset = 0.01;
 
 	// The robot faces forward in the x direction, with y increasing to its left
   const Eigen::Vector2d kImageBoundsMin = Eigen::Vector2d(0.7, -0.2);

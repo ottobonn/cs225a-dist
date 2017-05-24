@@ -289,15 +289,13 @@ Eigen::Vector3d Controller::ToolChangePosition() {
  * to a point in 3D operational space.
  */
 Eigen::Vector3d Controller::ImagePointToOperationalPoint(Eigen::Vector2d ndc_point) {
-	return Eigen::Vector3d(0, 0, 0);
-	Eigen::Vector3d image_point = lerp(image_corners.bottom_left,
-																		image_corners.top_left,
-																		image_corners.bottom_right,
-																		image_corners.top_right,
-																		ndc_point(0),
-																		ndc_point(1));
+	Eigen::Vector3d image_point = lerp(image_corners.bottom_right,
+									image_corners.top_right,
+									image_corners.bottom_left,
+									image_corners.top_left,
+									ndc_point(1), // rotate drawing by 90 degrees to align to world
+									1.f - ndc_point(0));
 	// Shift goal position by offset from wrist to tool tip
-	cout << image_point << endl << endl;
 	return image_point - kToolTipOffset;
 }
 
@@ -372,14 +370,27 @@ void Controller::runLoop() {
 
 			case CHANGING_TOOL:
 				if (computeOperationalSpaceControlTorques() == FINISHED) {
-					// Tool changed. Start new tool path.
+					// Tool changed. Start new tool path and move over drawing.
 					cout << "Tool change complete." << endl;
 					currentToolpathPoint_ = currentToolpath_->points.begin();
+					controller_state_ = Controller::MOVING_FROM_TOOL_CHANGE;
+					Eigen::Vector3d op_point = ImagePointToOperationalPoint(*currentToolpathPoint_);
+					// Move only in x-y plane to prevent drawing too early
+					x_des_(0) = op_point(0);
+					x_des_(1) = op_point(1);
+					break;
+				}
+				break;
+
+			case MOVING_FROM_TOOL_CHANGE:
+				if (computeOperationalSpaceControlTorques() == FINISHED) {
+					// The end-effector is hovering over the drawing point
+  					cout << "Moving to drawing." << endl;
 					x_des_ = ImagePointToOperationalPoint(*currentToolpathPoint_);
 					controller_state_ = Controller::OP_SPACE_POSITION_CONTROL;
 					break;
 				}
-				break;
+			  break;
 
 			case TRAJECTORY_COMPLETE:
 			  // Hold position
