@@ -13,6 +13,18 @@ static inline bool isnan(const Eigen::MatrixBase<Derived>& x) {
 	return (x.array() != x.array()).any();
 }
 
+static Eigen::Vector3d lerp(const Eigen::Vector3d &p00,
+														const Eigen::Vector3d &p10,
+														const Eigen::Vector3d &p01,
+														const Eigen::Vector3d &p11,
+														const float s,
+														const float t) {
+	return (1 - s) * (1 - t) * p00
+		+ (1 - s) * t * p01
+		+ s * (1 - t) * p10
+		+ s * t * p11;
+}
+
 using namespace std;
 
 /**
@@ -276,15 +288,17 @@ Eigen::Vector3d Controller::ToolChangePosition() {
  * Convert a point in the image plane (with coordinates on the interval [0, 1])
  * to a point in 3D operational space.
  */
-Eigen::Vector3d Controller::ImagePointToOperationalPoint(Eigen::Vector2d image_point) {
-  Eigen::Vector3d op_point;
-  float x_size = kImageBoundsMax(0) - kImageBoundsMin(0);
-  float y_size = kImageBoundsMax(1) - kImageBoundsMin(1);
-  float x = (image_point(0) - 0.5) * x_size + kImageBoundsMin(0);
-  float y = image_point(1) * y_size + kImageBoundsMin(1);
-  op_point << x, y, 0;
-	op_point -= kToolTipOffset; // Shift goal position by offset from wrist to tool tip
-  return op_point;
+Eigen::Vector3d Controller::ImagePointToOperationalPoint(Eigen::Vector2d ndc_point) {
+	return Eigen::Vector3d(0, 0, 0);
+	Eigen::Vector3d image_point = lerp(image_corners.bottom_left,
+																		image_corners.top_left,
+																		image_corners.bottom_right,
+																		image_corners.top_right,
+																		ndc_point(0),
+																		ndc_point(1));
+	// Shift goal position by offset from wrist to tool tip
+	cout << image_point << endl << endl;
+	return image_point - kToolTipOffset;
 }
 
 /**

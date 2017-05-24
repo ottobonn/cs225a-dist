@@ -18,6 +18,13 @@
 
 #include <iostream>
 
+typedef struct {
+	Eigen::Vector3d bottom_left;
+	Eigen::Vector3d top_left;
+	Eigen::Vector3d bottom_right;
+	Eigen::Vector3d top_right;
+} Bounds3d;
+
 class Controller {
 
 public:
@@ -68,6 +75,12 @@ public:
     // Set up trajectory iteration
     currentToolpath_ = trajectory_.sequence.begin();
     currentToolpathPoint_ = currentToolpath_->points.begin();
+
+		// Set up image bounds
+		image_corners.bottom_left = Eigen::Vector3d(0.7, -0.2, 0);
+		image_corners.bottom_right = Eigen::Vector3d(0.7, 0.2, 0);
+		image_corners.top_left = Eigen::Vector3d(1.1, -0.2, 0);
+		image_corners.top_right = Eigen::Vector3d(1.1, 0.2, 0);
 	}
 
 	/***** Public functions *****/
@@ -197,6 +210,8 @@ protected:
 	// The robot faces forward in the x direction, with y increasing to its left
   const Eigen::Vector2d kImageBoundsMin = Eigen::Vector2d(0.7, -0.2);
   const Eigen::Vector2d kImageBoundsMax = kImageBoundsMin + Eigen::Vector2d(0.4, 0.4);
+
+	Bounds3d image_corners;
 
 	const double kToolIntervalRadians = 2 * M_PI / 8;
 
