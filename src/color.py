@@ -2,12 +2,13 @@ import cv2
 import numpy as np
 import json
 import sys
+import glob, os
 
 MAX = 0
 
 def calculateDist(point0,point1):
-
-    return np.linalg.norm(point0-point1)
+    return (point1[0]-point0[0])**2 + (point1[1]-point0[1])**2
+#return np.linalg.norm(point0-point1)
 
 ## Inputs:
 #   Nodes: a vector of [start_point end_point] of all lines in found contour
@@ -52,12 +53,13 @@ def bestRouteHelper(nodes, availIndices, currIndex, currSubIndex, route, cumDist
 def bestRoute(contours):
     nodes = []
     n = len(contours)
+    print(n)
     min = MAX
     route = None
     indices = list(range(n))
     for i in range(n):
-        nodes.append((contours[i][0][0],contours[i][-1][0]))
-
+        nodes.append((contours[i][0],contours[i][-1]))
+    
     for i in range(n):
         currIndex=indices.pop(i)
         for currSubIndex in (0,1):
@@ -66,8 +68,10 @@ def bestRoute(contours):
             if d<min:
                 min = d
                 route = routeSoFar
+#       If min<5:
+#           joint the two lines
         indices.insert(i,currIndex)
-
+    
     newContours = []
     for i in range(n):
         index,subIndex = route[i]
@@ -89,7 +93,7 @@ def bestRoute(contours):
 def colorPath(image,image_width,image_height):
     path = []
     line = []
-    for col in range(image_width):
+    for col in range(image_width)[::3]:
         start = 0
         for row in range(image_height): # straight lines from up to down
             if image[row][col] == 1: # start and inside the line
@@ -103,6 +107,7 @@ def colorPath(image,image_width,image_height):
                 line = []
                 start = 0
 
+
     # Call same path planning function as contour, since already parsed shape in to lines
     return bestRoute(path)
 
@@ -111,18 +116,22 @@ def colorPath(image,image_width,image_height):
 
 def main(input_image, output_contour_dir, output_json_dir):
     im = cv2.imread(input_image)
+    print(im.shape)
     resize_width = 380
-    resize_height = im.shape[1] * resize_width / im.shape[0]
+    resize_height = int(im.shape[1] * resize_width / im.shape[0])
     im = cv2.resize(im, (resize_width, resize_height))
     blurred = cv2.GaussianBlur(im, (3, 3), 1)
-    print blurred.shape
-    ######## output contours as JOSN file ####### 
-
+    print(blurred.shape)
+    
+    global MAX
+    MAX = im.shape[0]**2 + im.shape[1]**2
+    ######## output contours as JOSN file #######
+    
     # find the max position to normalize the postions
     max_pos = max(resize_width, resize_height)
-
+    
     # build JSON object
-
+    
     # CMYK colors:
     # Cyan: (0, 0, 255) - 1
     # Magenta: (255, 0, 0) - 2
@@ -134,17 +143,17 @@ def main(input_image, output_contour_dir, output_json_dir):
     Y = [255, 255, 0]
     K = [0, 0, 0]
     colors = [K, C, M, Y]
-
-    JSONs = []
-    sequences = []
+    
+    JSONs = {}
+    JSONs['version'] = '1.0.0'
     matrixes = []
     
     for i in range(len(colors)):
-        JSONs.append({})
-        JSONs[i]['version'] = '1.0.0'
-        sequences.append([])
+        #JSONs.append({})
+        #JSONs[i]['version'] = '1.0.0'
+        #sequences.append([])
         matrixes.append(np.zeros((resize_width, resize_height)))
-
+    
     for i in range(resize_width):
         for j in range(resize_height):
             c = blurred[i][j]
@@ -160,18 +169,25 @@ def main(input_image, output_contour_dir, output_json_dir):
     
     for c in range(len(colors)):
         paths = colorPath(matrixes[c], resize_width, resize_height)
+        sequences = []
         for l in paths:
             cell = {}
             cell['tool'] = c
-            cell['points'] = l/float(max_pos)
-            sequence.append(cell)
-            JSONs[i]['sequence'] = sequence
-
+            points = []
+            for p in l:
+                #p1 = p[0]
+                points.append([float(p[0])/max_pos, float(p[1])/max_pos])
+            #cell['points'] = [[[i/float(max_pos) for i in j] for j in k] for k in l]
+            #cell['points'] = [i/float(max_pos)for k in l]
+            cell['points'] = points
+            sequences.append(cell)
+        JSONs['sequence'] = sequences
+        
         with open(output_json_dir+str(c)+'.json', 'w') as outfile:
-            json.dump(JSONs[c], outfile)
-    ######## end output JSON #####################
+            json.dump(JSONs, outfile)
+######## end output JSON #####################
 
-    ### save the contours to a picture
+### save the contours to a picture
     #output = np.zeros(im.shape, np.uint8)
     #cv2.drawContours(output, contours, -1, (0, 255, 0), 1)
     #cv2.drawContours(output, contours_out, -1, (0, 255, 0), 1)
@@ -182,13 +198,9 @@ def main(input_image, output_contour_dir, output_json_dir):
 
     return 0
 
+
 if __name__ == "__main__":
     if len(sys.argv) == 4:
         sys.exit(main(sys.argv[1], sys.argv[2], sys.argv[3]))
     else:
-        print "Usage: ./edge.py <input_image> <output_contour_image> <output_json_file>"
-
-
-
-
-
+        print("Usage: ./edge.py <input_image> <output_contour_image> <output_json_file>")
