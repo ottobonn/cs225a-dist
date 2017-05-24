@@ -9,11 +9,12 @@ def main(filename):
     with open(filename) as jsonfile:
         trajectory = json.load(jsonfile)
         plt.figure()
-        for toolpath in trajectory["sequence"]:
+        for index, toolpath in enumerate(trajectory["sequence"]):
             points = np.array(toolpath["points"])
-            plt.plot(points[:,0], points[:,1], "-o")
+            plt.plot(points[:,0], points[:,1], "-o", label=index)
         plt.xlim(-0.1, 1.1)
         plt.ylim(-0.1, 1.1)
+        plt.legend()
         plt.show()
     return 0
 
