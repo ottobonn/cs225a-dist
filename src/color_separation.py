@@ -2,21 +2,25 @@ import cv2
 import numpy as np
 import json
 import sys
+import glob, os
+
 
 def main(input_image, output_contour_dir, output_json_dir):
     im = cv2.imread(input_image)
+    print(im.shape)
     resize_width = 380
-    resize_height = im.shape[1] * resize_width / im.shape[0]
+    resize_height = int(im.shape[1] * resize_width / im.shape[0])
     im = cv2.resize(im, (resize_width, resize_height))
     blurred = cv2.GaussianBlur(im, (3, 3), 1)
-    print blurred.shape
-    ######## output contours as JOSN file ####### 
-
+    print(blurred.shape)
+    
+    ######## output contours as JOSN file #######
+    
     # find the max position to normalize the postions
     max_pos = max(resize_width, resize_height)
-
+    
     # build JSON object
-
+    
     # CMYK colors:
     # Cyan: (0, 0, 255) - 1
     # Magenta: (255, 0, 0) - 2
@@ -28,20 +32,20 @@ def main(input_image, output_contour_dir, output_json_dir):
     Y = [255, 255, 0]
     K = [0, 0, 0]
     colors = [K, C, M, Y]
-
-    JSONs = []
-    sequences = []
+    
+    JSONs = {}
+    JSONs['version'] = '1.0.0'
     matrixes = []
     
     preview_img = np.zeros((resize_width, resize_height, 3))
 
 
     for i in range(len(colors)):
-        JSONs.append({})
-        JSONs[i]['version'] = '1.0.0'
-        sequences.append([])
+        #JSONs.append({})
+        #JSONs[i]['version'] = '1.0.0'
+        #sequences.append([])
         matrixes.append(np.zeros((resize_width, resize_height)))
-
+    
     for i in range(resize_width):
         for j in range(resize_height):
             c = blurred[i][j]
@@ -80,21 +84,37 @@ def main(input_image, output_contour_dir, output_json_dir):
 
 
     ### save the contours to a picture
-    #output = np.zeros(im.shape, np.uint8)
-    #cv2.drawContours(output, contours, -1, (0, 255, 0), 1)
-    #cv2.drawContours(output, contours_out, -1, (0, 255, 0), 1)
-    #cv2.imshow('edges', output)
-    #cv2.waitKey(10000)
-    #cv2.destroyAllWindows()
-    #cv2.imwrite(output_contour_dir, output)
+
+    # for c in range(len(colors)):
+    #     paths = colorPath(matrixes[c], resize_width, resize_height)
+    #     sequences = []
+    #     for l in paths:
+    #         cell = {}
+    #         cell['tool'] = c
+    #         points = []
+    #         for p in l:
+    #             #p1 = p[0]
+    #             points.append([float(p[0])/max_pos, float(p[1])/max_pos])
+    #         #cell['points'] = [[[i/float(max_pos) for i in j] for j in k] for k in l]
+    #         #cell['points'] = [i/float(max_pos)for k in l]
+    #         cell['points'] = points
+    #         sequences.append(cell)
+    #     JSONs['sequence'] = sequences
+        
+    #     with open(output_json_dir+str(c)+'.json', 'w') as outfile:
+            # json.dump(JSONs, outfile)
+######## end output JSON #####################
+
+
 
     return 0
+
 
 if __name__ == "__main__":
     if len(sys.argv) == 4:
         sys.exit(main(sys.argv[1], sys.argv[2], sys.argv[3]))
     else:
-        print "Usage: ./color.py <input_image> <output_contour_image> <output_json_file>"
+        print "Usage: ./color_separation.py <input_image> <output_contour_image> <output_json_file>"
 
 
 
