@@ -94,10 +94,10 @@ def colorPath(image,image_width,image_height):
     for col in range(image_width):
         start = 0
         for row in range(image_height): # straight lines from up to down
-            if image[row][col] == 1: # start and inside the line
+            if image[row][col]==1: # start and inside the line
                 start = 1
-                line.append([row,col])
-            else if image[row][col] == 0 and start == 1: # end of line
+                line.append([[row,col]])
+            elif image[row][col]==0 and start == 1: # end of line
                 # only draw lines that are >=3 pixels. avoiding sharp shapes.
                 if len(line)>=3:
                     path.append(line)
@@ -115,6 +115,7 @@ def colorPath(image,image_width,image_height):
 
 def main(input_image, output_contour_dir, output_json_dir):
     im = cv2.imread(input_image)
+    im = cv2.flip(im,0)
     resize_width = 380
     resize_height = int(im.shape[1] * resize_width / im.shape[0])
     im = cv2.resize(im, (resize_width, resize_height))
@@ -139,8 +140,10 @@ def main(input_image, output_contour_dir, output_json_dir):
     # test contour:
     #temp = [([[1,1]],[[1,1]],[[10,10]]),([[2,2]],[[1,1]],[[1,1]],[[9,9]]),([[3,3]],[[1,1]],[[1,1]],[[8,8]])]
     #newContours = bestRoute(temp)
-    newContours = bestRoute(contours)
-    contours = newContours
+    contours.sort(key = len, reverse=True)
+    top10 = bestRoute(contours[0:10])
+    remain = bestRoute(contours[10:])
+    newContours = top10 + remain
     # example call of color path planning:
     #contours = def colorPath(im[0],image_width,image_height):
 
@@ -148,7 +151,7 @@ def main(input_image, output_contour_dir, output_json_dir):
 
     # find the max position to normalize the positions
     max_pos = 0
-    for l in contours:
+    for l in newContours:
         for p in l:
             p1 = p[0]
             if p1[0] > max_pos:
@@ -160,7 +163,7 @@ def main(input_image, output_contour_dir, output_json_dir):
     outputJSON = {}
     outputJSON['version'] = '1.0.0'
     sequence = []
-    for l in contours:
+    for l in newContours:
         cell = {}
         cell['tool'] = 0
         points = []
@@ -190,7 +193,7 @@ def main(input_image, output_contour_dir, output_json_dir):
 
     ### save the contours to a picture
     output = np.zeros(im.shape, np.uint8)
-    cv2.drawContours(output, contours, -1, (0, 255, 0), 1)
+    cv2.drawContours(output, newContours, -1, (0, 255, 0), 1)
     #cv2.drawContours(output, contours_out, -1, (0, 255, 0), 1)
     #cv2.imshow('edges', output)
     #cv2.waitKey(10000)
